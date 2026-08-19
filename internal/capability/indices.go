@@ -112,7 +112,7 @@ func minPtr(a, b *float64) *float64 {
 		return b
 	case b == nil:
 		return a
-	case *a > *b:
+	case *a < *b:
 		return a
 	default:
 		return b

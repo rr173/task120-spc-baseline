@@ -333,7 +333,7 @@ func (s *Service) SetRules(ctx context.Context, chartID string, toggles map[doma
 				return err
 			}
 		}
-		return nil
+		return s.recompute(ctx, tx, chartID, c.ChartType, c.SubgroupSize)
 	})
 }
 

@@ -1,0 +1,23 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #1a1a1a; background: #f6f7f9; }
+header { background: #1f3a5f; color: #fff; padding: 1rem 1.5rem; }
+header h1 { margin: 0; font-size: 1.25rem; }
+header .sub { margin: .25rem 0 0; opacity: .8; font-size: .85rem; }
+main { padding: 1rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+section { background: #fff; border: 1px solid #e0e3e8; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+h2 { margin-top: 0; font-size: 1.1rem; }
+h3 { font-size: .95rem; margin: .8rem 0 .4rem; }
+button { background: #1f3a5f; color: #fff; border: 0; border-radius: 4px; padding: .35rem .7rem; cursor: pointer; font-size: .85rem; margin-right: .4rem; }
+button:hover { background: #2c5278; }
+input, select { padding: .3rem; border: 1px solid #c0c4cc; border-radius: 4px; font-size: .85rem; }
+pre { background: #0f172a; color: #e2e8f0; padding: .6rem; border-radius: 6px; overflow-x: auto; font-size: .8rem; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+.card { border: 1px solid #e0e3e8; border-radius: 6px; padding: .6rem; margin-bottom: .5rem; cursor: pointer; }
+.card:hover { border-color: #1f3a5f; }
+.card .id { font-family: monospace; color: #555; font-size: .8rem; }
+.card .name { font-weight: 600; }
+.row { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-bottom: .4rem; }
+.row label { width: 6rem; font-size: .8rem; }
+svg { background: #fff; border: 1px solid #e0e3e8; border-radius: 6px; }
+footer { text-align: center; color: #999; padding: 1rem; }

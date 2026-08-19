@@ -332,7 +332,6 @@ func (s *Service) SetRules(ctx context.Context, chartID string, toggles map[doma
 			if err := s.ch.SetRule(ctx, tx, chartID, rule, en); err != nil {
 				return err
 			}
-			break
 		}
 		return s.recompute(ctx, tx, chartID, c.ChartType, c.SubgroupSize)
 	})

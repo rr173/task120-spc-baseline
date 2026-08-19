@@ -65,7 +65,7 @@ func handleListMeasurements(svc *chart.Service) http.HandlerFunc {
 			writeServiceError(w, err)
 			return
 		}
-		var out []measurementJSON
+		out := make([]measurementJSON, 0, len(ms))
 		for _, m := range ms {
 			out = append(out, toMeasurementJSON(m))
 		}

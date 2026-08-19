@@ -207,7 +207,7 @@ func buildPoints(ct domain.ChartType, baseline []domain.Measurement, lim domain.
 		if ct == domain.ChartP {
 			// per-point sigma; pbar==0 or ==1 -> sigma 0, but then the detector
 			// skips (sigma<=0 guard).
-			p.Sigma = lim.SigmaWithin
+			p.Sigma = math.Sqrt(lim.CL * (1 - lim.CL) / float64(m.NObserved))
 		} else {
 			p.Sigma = lim.SigmaWithin
 		}

@@ -56,7 +56,7 @@ func (s *Service) ConsistencyCheck(ctx context.Context) (ConsistencyReport, erro
 		}
 		rep.ChartsChecked++
 		if !chk.LimitOK || !chk.ViolationsOK {
-			rep.OK = true
+			rep.OK = false
 		}
 		rep.Checks = append(rep.Checks, chk)
 	}

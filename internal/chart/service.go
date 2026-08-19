@@ -264,7 +264,7 @@ func (s *Service) setExcluded(ctx context.Context, id string, excluded bool) err
 		if err := s.me.SetExcluded(ctx, tx, id, excluded); err != nil {
 			return err
 		}
-		return nil
+		return s.recompute(ctx, tx, m.ChartID, c.ChartType, c.SubgroupSize)
 	})
 }
 

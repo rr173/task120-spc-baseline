@@ -264,7 +264,11 @@ func (s *Service) setExcluded(ctx context.Context, id string, excluded bool) err
 		if err := s.me.SetExcluded(ctx, tx, id, excluded); err != nil {
 			return err
 		}
-		return nil
+		// The toggle changes the non-excluded baseline, so the control-limit
+		// cache and Westgard violations must be rebuilt from the now-current
+		// set — otherwise GetLimit and ConsistencyCheck keep serving the
+		// pre-toggle snapshot. Same spine as AddMeasurement/UpdateChart/SetRules.
+		return s.recompute(ctx, tx, m.ChartID, c.ChartType, c.SubgroupSize)
 	})
 }
 

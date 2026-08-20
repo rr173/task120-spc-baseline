@@ -26,7 +26,7 @@ func NewMeasurementStore() *MeasurementStore { return &MeasurementStore{} }
 func (MeasurementStore) NextSubgroupSeq(ctx context.Context, q DBTX, chartID string) (int, error) {
 	var maxSeq sql.NullInt64
 	err := q.QueryRowContext(ctx,
-		`SELECT MAX(subgroup_seq) FROM measurements`, chartID).Scan(&maxSeq)
+		`SELECT MAX(subgroup_seq) FROM measurements WHERE chart_id=?`, chartID).Scan(&maxSeq)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 1, nil

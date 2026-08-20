@@ -170,7 +170,7 @@ func (s *Service) AddMeasurement(ctx context.Context, chartID string, values []f
 	if err != nil {
 		return domain.Measurement{}, err
 	}
-	m.SubgroupSeq = int(c.CreatedSeq) + nextSeq
+	m.SubgroupSeq = nextSeq
 	err = s.st.InTx(ctx, func(tx *sql.Tx) error {
 		seq, err := s.st.NextSeq(ctx, tx)
 		if err != nil {

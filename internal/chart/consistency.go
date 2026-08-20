@@ -48,7 +48,9 @@ func (s *Service) ConsistencyCheck(ctx context.Context) (ConsistencyReport, erro
 	if err != nil {
 		return ConsistencyReport{}, err
 	}
-	rep := ConsistencyReport{OK: true}
+	// Pre-allocate Checks as a non-nil slice so a report with no charts
+	// serializes as "checks":[] rather than null.
+	rep := ConsistencyReport{OK: true, Checks: []ChartCheck{}}
 	for _, c := range charts {
 		chk, err := s.checkOneChart(ctx, c)
 		if err != nil {

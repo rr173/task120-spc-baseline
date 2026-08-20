@@ -67,7 +67,9 @@ func handleListCharts(svc *chart.Service) http.HandlerFunc {
 			writeServiceError(w, err)
 			return
 		}
-		var out []chartJSON
+		// Pre-allocate a non-nil slice so an empty result serializes as [] not
+		// null; clients iterate the array without a nil check.
+		out := make([]chartJSON, 0, len(charts))
 		for _, c := range charts {
 			out = append(out, toChartJSON(c))
 		}

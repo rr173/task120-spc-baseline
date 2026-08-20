@@ -65,7 +65,9 @@ func handleListMeasurements(svc *chart.Service) http.HandlerFunc {
 			writeServiceError(w, err)
 			return
 		}
-		var out []measurementJSON
+		// Pre-allocate a non-nil slice so an empty result serializes as [] not
+		// null; clients iterate the array without a nil check.
+		out := make([]measurementJSON, 0, len(ms))
 		for _, m := range ms {
 			out = append(out, toMeasurementJSON(m))
 		}

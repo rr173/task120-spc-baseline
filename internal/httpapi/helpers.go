@@ -10,17 +10,12 @@ import (
 	"task120-spc/internal/domain"
 )
 
-func decodeChartRequest(r *http.Request, v any) error {
-	if r.Body == nil {
-		return nil
-	}
-	dec := json.NewDecoder(r.Body)
-	return dec.Decode(v)
-}
-
-// decode reads a JSON body into v. An empty body is allowed (v stays zero) so
-// endpoints with no required fields can be called with no body; a malformed
-// non-empty body is a 400.
+// decode reads exactly one JSON value from the body into v. An empty body is
+// allowed (v stays zero) so endpoints with no required fields can be called
+// with no body. A malformed body, or one carrying any trailing content after
+// the first JSON value (a second JSON object, stray bytes, ...), is rejected:
+// the streaming decoder otherwise silently consumes only the leading value and
+// lets a smuggled second payload through.
 func decode(r *http.Request, v any) error {
 	if r.Body == nil {
 		return nil
@@ -33,7 +28,19 @@ func decode(r *http.Request, v any) error {
 		return nil
 	}
 	dec := json.NewDecoder(bytes.NewReader(body))
-	return dec.Decode(v)
+	if err := dec.Decode(v); err != nil {
+		return err
+	}
+	// A clean single-value body leaves the decoder at io.EOF. Anything else —
+	// a second JSON value (dec.Decode succeeds) or trailing garbage (a syntax
+	// error) — means the body is not a single JSON document.
+	var extra json.RawMessage
+	if err := dec.Decode(&extra); err == nil {
+		return errors.New("unexpected trailing content")
+	} else if !errors.Is(err, io.EOF) {
+		return err
+	}
+	return nil
 }
 
 // writeJSON sets the content type and writes v as JSON.

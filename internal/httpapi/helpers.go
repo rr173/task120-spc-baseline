@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,14 +8,6 @@ import (
 
 	"task120-spc/internal/domain"
 )
-
-func decodeChartRequest(r *http.Request, v any) error {
-	if r.Body == nil {
-		return nil
-	}
-	dec := json.NewDecoder(r.Body)
-	return dec.Decode(v)
-}
 
 // decode reads a JSON body into v. An empty body is allowed (v stays zero) so
 // endpoints with no required fields can be called with no body; a malformed
@@ -32,8 +23,7 @@ func decode(r *http.Request, v any) error {
 	if len(body) == 0 {
 		return nil
 	}
-	dec := json.NewDecoder(bytes.NewReader(body))
-	return dec.Decode(v)
+	return json.Unmarshal(body, v)
 }
 
 // writeJSON sets the content type and writes v as JSON.

@@ -44,7 +44,7 @@ type createChartReq struct {
 func handleCreateChart(svc *chart.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req createChartReq
-		if err := decodeChartRequest(r, &req); err != nil {
+		if err := decode(r, &req); err != nil {
 			writeError(w, http.StatusBadRequest, "bad json: "+err.Error())
 			return
 		}

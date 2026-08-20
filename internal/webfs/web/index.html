@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPC 质量监控引擎</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>SPC 质量监控引擎</h1>
+  <p class="sub">统计过程控制：控制图 · Westgard 多规则 · 过程能力</p>
+</header>
+
+<main>
+  <section id="charts">
+    <h2>控制图</h2>
+    <button id="refresh">刷新</button>
+    <button id="new-btn">新建控制图</button>
+    <div id="chart-list"></div>
+  </section>
+
+  <section id="detail" hidden>
+    <h2 id="chart-title">—</h2>
+    <div class="grid">
+      <div>
+        <h3>添加测量点</h3>
+        <div id="meas-form"></div>
+        <button id="add-meas">提交</button>
+      </div>
+      <div>
+        <h3>控制限</h3>
+        <pre id="limits"></pre>
+        <h3>失控违规</h3>
+        <pre id="violations"></pre>
+        <h3>过程能力</h3>
+        <pre id="capability"></pre>
+      </div>
+    </div>
+    <h3>控制图</h3>
+    <div id="chart-canvas"></div>
+    <h3>测量点</h3>
+    <div id="measurements"></div>
+  </section>
+</main>
+
+<footer><small>原生 HTML/CSS/JS · 无构建步骤 · //go:embed 内嵌</small></footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -317,8 +317,10 @@ func (s *Service) GetRules(ctx context.Context, chartID string) (map[domain.Rule
 	return s.ch.ListRules(ctx, s.st, chartID)
 }
 
-// SetRules applies a batch of rule toggles and re-runs Westgard so the stored
-// violation set reflects the new enable map.
+// SetRules applies a batch of rule toggles in a single transaction and then
+// re-runs Westgard so the stored violation set reflects the new enable map.
+// Every toggle in the map is persisted; the whole batch (plus the recomputed
+// violations) commits atomically or rolls back together.
 func (s *Service) SetRules(ctx context.Context, chartID string, toggles map[domain.RuleName]bool) error {
 	c, err := s.ch.GetChart(ctx, s.st, chartID)
 	if err != nil {
@@ -328,11 +330,16 @@ func (s *Service) SetRules(ctx context.Context, chartID string, toggles map[doma
 		return fmt.Errorf("%w: chart %s archived", domain.ErrTerminal, chartID)
 	}
 	return s.st.InTx(ctx, func(tx *sql.Tx) error {
+		// Persist every toggle in the batch; the surrounding transaction rolls
+		// them all back together if any single write fails, and recompute then
+		// re-runs Westgard over the complete enable map. (An earlier version
+		// broke out of this loop after the first toggle, so only one of a
+		// submitted batch survived — the rest reverted to the seeded default on
+		// restart and recalc.)
 		for rule, en := range toggles {
 			if err := s.ch.SetRule(ctx, tx, chartID, rule, en); err != nil {
 				return err
 			}
-			break
 		}
 		return s.recompute(ctx, tx, chartID, c.ChartType, c.SubgroupSize)
 	})

@@ -120,7 +120,9 @@ func (ChartStore) ListRules(ctx context.Context, q DBTX, chartID string) (map[do
 		if err := rows.Scan(&r, &en); err != nil {
 			return nil, err
 		}
-		m[domain.RuleName(r)] = en != 1
+		// enabled column is 1=true / 0=false (seeded by InsertChart, written by
+		// SetRule via boolToInt). Map it back to bool without inversion.
+		m[domain.RuleName(r)] = en == 1
 	}
 	return m, rows.Err()
 }

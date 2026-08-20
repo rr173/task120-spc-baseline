@@ -166,11 +166,16 @@ func (s *Service) AddMeasurement(ctx context.Context, chartID string, values []f
 	// Compute the next subgroup sequence BEFORE opening the write transaction:
 	// the chart has SetMaxOpenConns(1), so a read via the pooled connection
 	// would deadlock waiting for the very connection the IMMEDIATE tx holds.
+	// subgroup_seq is scoped per chart: NextSubgroupSeq returns that chart's
+	// own running max+1, so two charts interleaved each count from 1 instead of
+	// sharing one global counter (and the second chart inheriting the first's
+	// numbers). It is not offset by CreatedSeq, which would shift every chart's
+	// sequence by its creation order and break per-chart isolation.
 	nextSeq, err := s.me.NextSubgroupSeq(ctx, s.st, chartID)
 	if err != nil {
 		return domain.Measurement{}, err
 	}
-	m.SubgroupSeq = int(c.CreatedSeq) + nextSeq
+	m.SubgroupSeq = nextSeq
 	err = s.st.InTx(ctx, func(tx *sql.Tx) error {
 		seq, err := s.st.NextSeq(ctx, tx)
 		if err != nil {

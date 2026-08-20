@@ -15,9 +15,12 @@ type MeasurementStore struct{}
 func NewMeasurementStore() *MeasurementStore { return &MeasurementStore{} }
 
 // NextSubgroupSeq returns the next subgroup sequence number for a chart
-// (existing max + 1, or 1 if none). subgroup_seq must be strictly increasing
-// within a chart; assigning max+1 at insert time preserves submission order
-// even across restarts because the rows themselves carry the seq.
+// (existing max + 1 within that chart, or 1 if it has none). subgroup_seq is
+// strictly increasing within a chart, scoped per chart, so the MAX must be
+// filtered to the chart in question — otherwise a second chart's points pick
+// up the first chart's running counter and no longer start at 1. Assigning
+// max+1 at insert time preserves submission order even across restarts because
+// the rows themselves carry the seq.
 //
 // q is the query surface: pass the Store (or s.querier()) outside a tx, or the
 // *sql.Tx inside one. With SetMaxOpenConns(1) the caller must NOT pass the bare
@@ -26,7 +29,7 @@ func NewMeasurementStore() *MeasurementStore { return &MeasurementStore{} }
 func (MeasurementStore) NextSubgroupSeq(ctx context.Context, q DBTX, chartID string) (int, error) {
 	var maxSeq sql.NullInt64
 	err := q.QueryRowContext(ctx,
-		`SELECT MAX(subgroup_seq) FROM measurements`, chartID).Scan(&maxSeq)
+		`SELECT MAX(subgroup_seq) FROM measurements WHERE chart_id=?`, chartID).Scan(&maxSeq)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 1, nil

@@ -333,7 +333,10 @@ func (s *Service) SetRules(ctx context.Context, chartID string, toggles map[doma
 				return err
 			}
 		}
-		return nil
+		// Re-run Westgard over the existing baseline so the stored violation
+		// set reflects the new enable map: disabling a rule drops its hits,
+		// enabling one re-derives them. Same spine every other mutation uses.
+		return s.recompute(ctx, tx, chartID, c.ChartType, c.SubgroupSize)
 	})
 }
 

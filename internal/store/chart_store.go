@@ -120,7 +120,9 @@ func (ChartStore) ListRules(ctx context.Context, q DBTX, chartID string) (map[do
 		if err := rows.Scan(&r, &en); err != nil {
 			return nil, err
 		}
-		m[domain.RuleName(r)] = en != 1
+		// enabled is stored 1 (true) / 0 (false) via boolToInt, so a row's
+		// value is enabled iff en==1. Absent rows keep the default above.
+		m[domain.RuleName(r)] = en == 1
 	}
 	return m, rows.Err()
 }

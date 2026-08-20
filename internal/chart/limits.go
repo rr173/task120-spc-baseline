@@ -198,16 +198,22 @@ func computeP(baseline []domain.Measurement, n int) (domain.ControlLimit, bool) 
 }
 
 // buildPoints projects the baseline into the detector's input. For variables
-// charts the sigma is the within-sigma (constant); for p_chart each point
-// carries its own sigma derived from its n.
+// charts the sigma is the within-sigma (constant across points); for p_chart
+// each point carries its own sigma derived from pbar and that point's
+// n_observed, so a chart whose subgroups vary in size gets a per-point control
+// interval and per-point out-of-control zones instead of one fixed band. The
+// cache's lim.SigmaWithin (the last point's sigma) is only a representative
+// width for display; it is NOT the per-point sigma used for detection.
 func buildPoints(ct domain.ChartType, baseline []domain.Measurement, lim domain.ControlLimit) []westgard.Point {
 	pts := make([]westgard.Point, 0, len(baseline))
+	pbar := lim.CL
 	for _, m := range baseline {
 		p := westgard.Point{Seq: m.SubgroupSeq, Value: m.ValueAvg, CL: lim.CL}
 		if ct == domain.ChartP {
-			// per-point sigma; pbar==0 or ==1 -> sigma 0, but then the detector
-			// skips (sigma<=0 guard).
-			p.Sigma = lim.SigmaWithin
+			// per-point sigma = sqrt(pbar*(1-pbar)/n_i). pbar==0 or ==1 -> sigma
+			// 0 for every point, and the detector's sigma<=0 guard then skips
+			// all of them (no zones to test).
+			p.Sigma = math.Sqrt(pbar * (1 - pbar) / float64(m.NObserved))
 		} else {
 			p.Sigma = lim.SigmaWithin
 		}

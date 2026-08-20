@@ -77,7 +77,7 @@ func Detect(points []Point, cl, sigma float64, enabled map[domain.RuleName]bool)
 				if enabled[domain.RuleR4s] &&
 					!sameSign(last.Value-last.CL, prev.Value-prev.CL) &&
 					absf(z) > 2 && absf(zPrev) > 2 &&
-					absf(last.Value-prev.Value) > 4*sigma {
+					absf(last.Value-prev.Value) > 4*last.Sigma {
 					out = append(out, violation(domain.RuleR4s, last.Seq))
 				}
 			}

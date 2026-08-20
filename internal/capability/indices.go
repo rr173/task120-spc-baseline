@@ -105,14 +105,16 @@ func Compute(in Input) domain.Capability {
 }
 
 // minPtr returns the smaller of two *float64, or whichever is non-nil. Used to
-// build Cpk/Ppk = min(CPU, CPL).
+// build Cpk/Ppk = min(CPU, CPL): the bilateral index must reflect the spec
+// side the process mean sits closer to, which is the worse (smaller) of the two
+// one-sided capabilities — not the better one.
 func minPtr(a, b *float64) *float64 {
 	switch {
 	case a == nil:
 		return b
 	case b == nil:
 		return a
-	case *a > *b:
+	case *a < *b:
 		return a
 	default:
 		return b

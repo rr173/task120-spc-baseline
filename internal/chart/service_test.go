@@ -175,6 +175,59 @@ func TestExcludeRecomputeChangesBaseline(t *testing.T) {
 	}
 }
 
+func TestListMeasurementsSplitsExcludedFromDefault(t *testing.T) {
+	svc, closeFn := newService(t)
+	defer closeFn()
+	ctx := context.Background()
+	c, err := svc.CreateChart(ctx, "n", "c", domain.ChartIndividuals, "mm", 1, nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range []float64{10, 12, 11, 9, 10} {
+		_, _ = svc.AddMeasurement(ctx, c.ChartID, []float64{v}, 0, 0)
+	}
+	// Pick the seq=2 point and exclude it so the baseline view must drop it.
+	ms, _ := svc.ListMeasurements(ctx, c.ChartID, false)
+	var mid string
+	for _, m := range ms {
+		if m.SubgroupSeq == 2 {
+			mid = m.MeasurementID
+		}
+	}
+	if err := svc.ExcludeMeasurement(ctx, mid); err != nil {
+		t.Fatalf("exclude: %v", err)
+	}
+
+	// Default operator view (excludeExcluded=true) hides the excluded point.
+	live, _ := svc.ListMeasurements(ctx, c.ChartID, true)
+	if len(live) != 4 {
+		t.Errorf("default view should hide excluded point, got %d rows", len(live))
+	}
+	for _, m := range live {
+		if m.Excluded {
+			t.Errorf("default view leaked excluded point #%d", m.SubgroupSeq)
+		}
+	}
+
+	// Explicit history view (excludeExcluded=false) still contains it.
+	hist, _ := svc.ListMeasurements(ctx, c.ChartID, false)
+	if len(hist) != 5 {
+		t.Errorf("history view should keep excluded point, got %d rows", len(hist))
+	}
+	var sawExcluded bool
+	for _, m := range hist {
+		if m.MeasurementID == mid {
+			sawExcluded = true
+			if !m.Excluded {
+				t.Errorf("history view should mark the excluded point as excluded")
+			}
+		}
+	}
+	if !sawExcluded {
+		t.Errorf("history view dropped the excluded point")
+	}
+}
+
 func TestConsistencyCheckOK(t *testing.T) {
 	svc, closeFn := newService(t)
 	defer closeFn()

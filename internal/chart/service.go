@@ -225,11 +225,16 @@ func (s *Service) buildMeasurement(ctx context.Context, c domain.Chart, values [
 }
 
 // ListMeasurements returns the measurements of a chart in subgroup order.
+// excludeExcluded=true hides soft-deleted (excluded) points — the default for
+// the ordinary operator view; excludeExcluded=false includes them, which is
+// what the history query uses. The flag is passed straight through to the
+// store, whose own parameter has the same meaning, so the two views never
+// bleed into each other.
 func (s *Service) ListMeasurements(ctx context.Context, chartID string, excludeExcluded bool) ([]domain.Measurement, error) {
 	if _, err := s.ch.GetChart(ctx, s.st, chartID); err != nil {
 		return nil, err
 	}
-	return s.me.ListMeasurementsByChart(ctx, s.st, chartID, !excludeExcluded)
+	return s.me.ListMeasurementsByChart(ctx, s.st, chartID, excludeExcluded)
 }
 
 // GetMeasurement returns one measurement.

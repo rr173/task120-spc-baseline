@@ -198,3 +198,72 @@ func TestConsistencyCheckOK(t *testing.T) {
 		}
 	}
 }
+
+// TestXbarROverallSigmaFromRawObservations locks the bug where identical
+// subgroup means (no between-subgroup drift) still left within-subgroup
+// variation in the raw observations: sigma_overall and the capability report's
+// overall-sigma indices must reflect that raw variation, not collapse to 0.
+// Subgroups {1,5}, {2,4}, {3,3}, {4,2}, {5,1} all have mean 3 -> if sigma_overall
+// were (wrongly) computed over the means it would be 0 and Ppk/Pp/Cpm/DPMO/Yield
+// would all come back not-estimable / nil. Over the raw observations the std is
+// ~1.5811 (population) / sqrt(2) for Bessel's n-1; we only assert it is > 0 and
+// that the overall-based capability indices are present.
+func TestXbarROverallSigmaFromRawObservations(t *testing.T) {
+	svc, closeFn := newService(t)
+	defer closeFn()
+	ctx := context.Background()
+	usl, lsl, target := 30.0, -10.0, 3.0
+	c, err := svc.CreateChart(ctx, "xr", "c", domain.ChartXbarR, "mm", 2, &usl, &lsl, &target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sub := range [][]float64{{1, 5}, {2, 4}, {3, 3}, {4, 2}, {5, 1}} {
+		if _, err := svc.AddMeasurement(ctx, c.ChartID, sub, 0, 0); err != nil {
+			t.Fatalf("add: %v", err)
+		}
+	}
+	lim, err := svc.GetLimit(ctx, c.ChartID)
+	if err != nil {
+		t.Fatalf("get limit: %v", err)
+	}
+	// Every subgroup mean is 3, so the (buggy) mean-of-means sigma would be 0.
+	if lim.CL != 3 {
+		t.Errorf("CL %g != 3", lim.CL)
+	}
+	if lim.SigmaOverall <= 0 {
+		t.Fatalf("sigma_overall %g must be > 0 (raw observations vary even though means are equal)", lim.SigmaOverall)
+	}
+	// sigma_within comes from Rbar/d2(n); the ranges are all 4, so it is > 0.
+	if lim.SigmaWithin <= 0 {
+		t.Fatalf("sigma_within %g must be > 0", lim.SigmaWithin)
+	}
+	// Capability report: the overall-sigma indices (Ppk/Pp/Cpm/DPMO/Yield) must
+	// be present because sigma_overall > 0 — the bug would leave them nil.
+	cap, err := svc.GetCapability(ctx, c.ChartID)
+	if err != nil {
+		t.Fatalf("get capability: %v", err)
+	}
+	if !cap.Estimable {
+		t.Fatal("capability should be estimable")
+	}
+	if cap.Ppk == nil {
+		t.Error("Ppk should be present (sigma_overall>0)")
+	}
+	if cap.Pp == nil {
+		t.Error("Pp should be present (two-sided spec, sigma_overall>0)")
+	}
+	if cap.Cpm == nil {
+		t.Error("Cpm should be present (target set, sigma_overall>0)")
+	}
+	if cap.DPMO == nil || cap.Yield == nil {
+		t.Error("DPMO and Yield should be present (sigma_overall>0)")
+	}
+	// Consistency must still hold after the fix: cache == recomputed.
+	rep, err := svc.ConsistencyCheck(ctx)
+	if err != nil {
+		t.Fatalf("consistency: %v", err)
+	}
+	if !rep.OK {
+		t.Errorf("consistency not ok after fix: %+v", rep)
+	}
+}

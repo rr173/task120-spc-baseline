@@ -304,7 +304,7 @@ func (s *Service) computeCapability(ctx context.Context, c domain.Chart) domain.
 	}
 	in := capability.Input{
 		USL: c.USL, LSL: c.LSL, Target: c.Target,
-		Mean: lim.CL, SigmaWithin: lim.SigmaWithin, SigmaOverall: lim.SigmaWithin,
+		Mean: lim.CL, SigmaWithin: lim.SigmaWithin, SigmaOverall: lim.SigmaOverall,
 	}
 	return capability.Compute(in)
 }

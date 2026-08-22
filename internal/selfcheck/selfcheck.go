@@ -52,6 +52,7 @@ func Run() error {
 		{"rule-toggle-disables", smokeRuleToggle},
 		{"capability-estimable-and-not", smokeCapability},
 		{"one-sided-spec", smokeOneSidedSpec},
+		{"xbar-r-overall-sigma-from-raw-observations", smokeXbarROverallSigma},
 		{"consistency-check-ok", smokeConsistency},
 		{"frontend-page-served", smokeFrontend},
 	}
@@ -702,6 +703,65 @@ func smokeOneSidedSpec(srv *httptest.Server, dbPath string) error {
 	}
 	if c.CPU == nil || c.Cpk == nil {
 		return fmt.Errorf("one-sided should have CPU and Cpk")
+	}
+	return nil
+}
+
+// smokeXbarROverallSigma: identical subgroup means (no between-subgroup drift)
+// but varying raw observations. sigma_overall and the overall-sigma capability
+// indices must reflect the raw variation, not collapse to 0. Before the fix,
+// sigma_overall was computed over the subgroup means (== 0 here) and the
+// capability report passed sigma_within as sigma_overall, so Pp/Ppk/Cpm/DPMO/
+// Yield were either nil or computed against the wrong sigma.
+func smokeXbarROverallSigma(srv *httptest.Server, dbPath string) error {
+	usl, lsl, target := 30.0, -10.0, 3.0
+	body := map[string]any{"name": "xro", "characteristic": "d", "chart_type": "xbar_r", "unit": "mm", "subgroup_size": 2,
+		"usl": usl, "lsl": lsl, "target": target}
+	var ch struct{ ChartID string `json:"chart_id"` }
+	if err := mustDo(srv, "POST", "/charts", body, false, &ch); err != nil {
+		return err
+	}
+	id := ch.ChartID
+	// Every subgroup has mean 3; the raw observations vary (range 4 each).
+	for _, sub := range [][]float64{{1, 5}, {2, 4}, {3, 3}, {4, 2}, {5, 1}} {
+		if err := mustDo(srv, "POST", "/charts/"+id+"/measurements",
+			map[string]any{"values": sub}, false, nil); err != nil {
+			return err
+		}
+	}
+	lim, err := getLimits(srv, id)
+	if err != nil {
+		return err
+	}
+	if !approxEq(lim.CL, 3) {
+		return fmt.Errorf("CL %g != 3", lim.CL)
+	}
+	if !(lim.SigmaOverall > 0) {
+		return fmt.Errorf("sigma_overall %g must be > 0 (raw observations vary even though means are equal)", lim.SigmaOverall)
+	}
+	c, err := getCapability(srv, id)
+	if err != nil {
+		return err
+	}
+	if !c.Estimable {
+		return fmt.Errorf("capability not estimable (status %q)", c.Status)
+	}
+	// The overall-sigma indices must be present; before the fix they were nil
+	// (sigma_overall collapsed to 0) or computed against sigma_within.
+	if c.Pp == nil || c.Ppk == nil || c.Cpm == nil || c.DPMO == nil || c.Yield == nil {
+		return fmt.Errorf("overall-sigma indices missing: Pp=%v Ppk=%v Cpm=%v DPMO=%v Yield=%v",
+			c.Pp, c.Ppk, c.Cpm, c.DPMO, c.Yield)
+	}
+	// Consistency must still hold after the fix.
+	var rep struct {
+		OK            bool `json:"ok"`
+		ChartsChecked int  `json:"charts_checked"`
+	}
+	if err := mustDo(srv, "POST", "/admin/recompute", nil, true, &rep); err != nil {
+		return err
+	}
+	if !rep.OK {
+		return fmt.Errorf("consistency not ok after fix")
 	}
 	return nil
 }

@@ -79,3 +79,30 @@ func TestComputeDPMO(t *testing.T) {
 		t.Errorf("yield %v want ~0.9973", c.Yield)
 	}
 }
+
+// TestOverallSigmaDistinctFromWithin locks the contract that the overall-sigma
+// indices (Pp/Ppk) use SigmaOverall while the within-sigma indices (Cp/Cpk) use
+// SigmaWithin. With SigmaOverall = 2*SigmaWithin the within indices must be
+// twice the overall indices.
+func TestOverallSigmaDistinctFromWithin(t *testing.T) {
+	// USL=20, LSL=0, mean=10, sigma_within=1, sigma_overall=2.
+	c := Compute(Input{USL: ptr(20), LSL: ptr(0), Mean: 10, SigmaWithin: 1, SigmaOverall: 2})
+	if !c.Estimable {
+		t.Fatal("should be estimable")
+	}
+	// Cp = (20-0)/(6*1) = 20/6; Pp = (20-0)/(6*2) = 20/12 = Cp/2.
+	if c.Cp == nil || math.Abs(*c.Cp-20.0/6) > 1e-9 {
+		t.Errorf("Cp %v want %g", c.Cp, 20.0/6)
+	}
+	if c.Pp == nil || math.Abs(*c.Pp-20.0/12) > 1e-9 {
+		t.Errorf("Pp %v want %g", c.Pp, 20.0/12)
+	}
+	// Cpk = min((20-10)/3, (10-0)/3) over sigma_within=1 -> 10/3.
+	// Ppk = min(..., ...) over sigma_overall=2 -> 10/6 = Cpk/2.
+	if c.Cpk == nil || math.Abs(*c.Cpk-10.0/3) > 1e-9 {
+		t.Errorf("Cpk %v want %g", c.Cpk, 10.0/3)
+	}
+	if c.Ppk == nil || math.Abs(*c.Ppk-10.0/6) > 1e-9 {
+		t.Errorf("Ppk %v want %g", c.Ppk, 10.0/6)
+	}
+}

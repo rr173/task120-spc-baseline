@@ -143,12 +143,18 @@ func computeXbarR(baseline []domain.Measurement, n int) (domain.ControlLimit, bo
 	}
 	rbar := stats.Mean(ranges)
 	sigmaWithin := rbar / stats.D2(n)
-	// Overall sigma uses every individual value across subgroups.
+	// Overall sigma is the Bessel std over every individual observation across
+	// all subgroups — NOT over the subgroup means. The subgroup means can be
+	// identical (no between-subgroup drift) while the raw observations still
+	// vary within each subgroup, so using the means would erase within-subgroup
+	// variation and wrongly drive sigma_overall to 0. The capability report
+	// (Pp/Ppk/Cpm/DPMO/Yield) and the overall stats must reflect that raw
+	// variation.
 	var all []float64
 	for _, m := range baseline {
 		all = append(all, m.Values...)
 	}
-	sigmaOverall := stats.SampleStdDev(means)
+	sigmaOverall := stats.SampleStdDev(all)
 	cl := domain.ControlLimit{
 		BaselineCount: len(baseline),
 		CL:            xbarbar,
